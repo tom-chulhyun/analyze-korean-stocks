@@ -261,13 +261,6 @@ def main(
             help="AI 분석 제외",
         ),
     ] = False,
-    merge: Annotated[
-        bool,
-        typer.Option(
-            "--merge",
-            help="모든 종목을 하나의 PDF로 합치기",
-        ),
-    ] = False,
     output: Annotated[
         Optional[Path],
         typer.Option(
@@ -280,14 +273,14 @@ def main(
     한국 주식 분석 리포트를 생성합니다.
 
     종목코드 미입력 시 거래대금 상위 종목을 자동으로 선정합니다.
+    2개 이상의 종목 분석 시 자동으로 하나의 PDF로 병합됩니다.
 
     예시:
-        stock-report                           # 거래대금 상위 10개 종목 자동 분석
-        stock-report --top 5                   # 상위 5개 종목
-        stock-report --top 5 --merge           # 상위 5개 종목을 하나의 PDF로
+        stock-report                           # 거래대금 상위 10개 종목 자동 분석 (병합)
+        stock-report --top 5                   # 상위 5개 종목 (병합)
         stock-report --market KOSDAQ           # KOSDAQ만
-        stock-report 005930 000660             # 지정 종목 분석
-        stock-report 005930 --period 90        # 90일 리포트
+        stock-report 005930 000660             # 지정 종목 분석 (병합)
+        stock-report 005930 --period 90        # 90일 리포트 (단일)
         stock-report --kakao                   # 자동 선정 + 카카오톡 전송
     """
     settings = get_settings()
@@ -353,9 +346,9 @@ def main(
                 all_pdf_paths.append(pdf_path)
                 console.print(f"[green]✓ 리포트 생성 완료: {pdf_path}[/green]")
 
-    # PDF 병합
+    # PDF 병합 (2개 이상일 경우 자동 병합)
     merged_pdf: Path | None = None
-    if merge and len(all_pdf_paths) > 1:
+    if len(all_pdf_paths) > 1:
         console.print(f"\n[bold cyan]>>> PDF 병합 중...[/bold cyan]")
         today_str = date.today().strftime("%Y%m%d")
         merged_filename = f"stock_report_{today_str}.pdf"
