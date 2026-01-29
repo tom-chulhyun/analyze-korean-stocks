@@ -167,3 +167,133 @@ class StockPriceCollector:
             return not df.empty
         except Exception:
             return False
+
+    def get_top_stocks_by_trading_value(
+        self,
+        target_date: date | None = None,
+        market: str = "KOSPI",
+        top_n: int = 10,
+    ) -> list[dict]:
+        """거래대금 상위 종목 조회
+
+        Args:
+            target_date: 조회 날짜 (기본값: 최근 거래일)
+            market: 시장 (KOSPI, KOSDAQ)
+            top_n: 상위 N개
+
+        Returns:
+            [{"code": "005930", "name": "삼성전자", "trading_value": 1000000000, "change_rate": 2.5}, ...]
+        """
+        if target_date is None:
+            target_date = date.today()
+
+        # 최근 거래일 찾기 (주말/공휴일 대비)
+        df = None
+        for i in range(14):
+            try_date = (target_date - timedelta(days=i)).strftime("%Y%m%d")
+            try:
+                # 종목 목록 가져오기
+                tickers = pykrx.get_market_ticker_list(try_date, market=market)
+                if tickers:
+                    # 각 종목의 당일 데이터 수집
+                    data = []
+                    for ticker in tickers:
+                        try:
+                            ohlcv = pykrx.get_market_ohlcv(try_date, try_date, ticker)
+                            if not ohlcv.empty:
+                                row = ohlcv.iloc[0]
+                                trading_value = float(row["종가"]) * int(row["거래량"])
+                                data.append({
+                                    "code": ticker,
+                                    "close": float(row["종가"]),
+                                    "volume": int(row["거래량"]),
+                                    "trading_value": trading_value,
+                                    "change_rate": float(row["등락률"]),
+                                })
+                        except Exception:
+                            continue
+
+                    if data:
+                        # 거래대금 기준 정렬
+                        data.sort(key=lambda x: x["trading_value"], reverse=True)
+
+                        results = []
+                        for item in data[:top_n]:
+                            name = pykrx.get_market_ticker_name(item["code"]) or item["code"]
+                            results.append({
+                                "code": item["code"],
+                                "name": name,
+                                "trading_value": int(item["trading_value"]),
+                                "close": int(item["close"]),
+                                "change_rate": item["change_rate"],
+                                "volume": item["volume"],
+                            })
+                        return results
+            except Exception as e:
+                continue
+
+        print("거래대금 상위 종목 조회 실패: 거래일을 찾을 수 없습니다.")
+        return []
+
+    def get_top_stocks_by_change_rate(
+        self,
+        target_date: date | None = None,
+        market: str = "KOSPI",
+        top_n: int = 10,
+        ascending: bool = False,
+        min_trading_value: int = 1_000_000_000,
+    ) -> list[dict]:
+        """등락률 상위/하위 종목 조회
+
+        Args:
+            target_date: 조회 날짜 (기본값: 최근 거래일)
+            market: 시장 (KOSPI, KOSDAQ)
+            top_n: 상위 N개
+            ascending: True면 하락률 상위, False면 상승률 상위
+            min_trading_value: 최소 거래대금 (기본 10억)
+
+        Returns:
+            [{"code": "005930", "name": "삼성전자", "trading_value": 1000000000, "change_rate": 2.5}, ...]
+        """
+        # 거래대금 상위 종목 데이터 재활용 (이미 수집된 데이터 사용)
+        all_stocks = self.get_top_stocks_by_trading_value(
+            target_date=target_date,
+            market=market,
+            top_n=100,  # 충분히 많은 종목 가져오기
+        )
+
+        if not all_stocks:
+            return []
+
+        # 거래대금 필터
+        filtered = [s for s in all_stocks if s["trading_value"] >= min_trading_value]
+
+        # 등락률 기준 정렬
+        filtered.sort(key=lambda x: x["change_rate"], reverse=not ascending)
+
+        return filtered[:top_n]
+
+    def get_market_summary(
+        self,
+        target_date: date | None = None,
+        top_n: int = 5,
+    ) -> dict:
+        """시장 요약 정보 (거래대금/상승률/하락률 상위)
+
+        Returns:
+            {
+                "date": "2026-01-29",
+                "top_trading_value": [...],
+                "top_gainers": [...],
+                "top_losers": [...],
+            }
+        """
+        if target_date is None:
+            target_date = date.today()
+
+        return {
+            "date": target_date.isoformat(),
+            "top_trading_value": self.get_top_stocks_by_trading_value(target_date, top_n=top_n),
+            "top_gainers": self.get_top_stocks_by_change_rate(target_date, top_n=top_n, ascending=False),
+            "top_losers": self.get_top_stocks_by_change_rate(target_date, top_n=top_n, ascending=True),
+        }

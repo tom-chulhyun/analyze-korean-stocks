@@ -1,5 +1,6 @@
 """GitHub Repository 파일 업로더 (현재 레포 사용)"""
 
+import os
 import subprocess
 from pathlib import Path
 import shutil
@@ -14,6 +15,7 @@ class GitHubUploader:
         self._settings = get_settings()
         self._max_reports = max_reports
         self._repo_root = self._find_repo_root()
+        self._setup_git_config()
 
     def _find_repo_root(self) -> Path | None:
         """Git 레포지토리 루트 찾기"""
@@ -29,6 +31,17 @@ class GitHubUploader:
         except Exception:
             pass
         return None
+
+    def _setup_git_config(self) -> None:
+        """Git config 설정 (GitHub Actions 환경 지원)"""
+        if not self._repo_root:
+            return
+
+        # GitHub Actions 환경인지 확인
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            # GitHub Actions bot으로 설정
+            self._run_git("config", "user.name", "github-actions[bot]")
+            self._run_git("config", "user.email", "github-actions[bot]@users.noreply.github.com")
 
     @property
     def is_available(self) -> bool:
