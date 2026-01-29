@@ -44,8 +44,15 @@ class DartCollector:
             return []
 
         if years is None:
+            # 사업보고서는 다음 해 3월에 공시되므로, 현재 연도 - 2부터 조회
             current_year = date.today().year
-            years = [current_year, current_year - 1]
+            current_month = date.today().month
+            # 3월 이전이면 전전년도부터, 3월 이후면 전년도부터
+            if current_month < 4:
+                start_year = current_year - 2
+            else:
+                start_year = current_year - 1
+            years = [start_year, start_year - 1]
 
         financials = []
 
