@@ -1,8 +1,12 @@
-"""주가 데이터 수집기 (pykrx)"""
+"""주가 데이터 수집기 (pykrx + FinanceDataReader)"""
 
+import re
 from datetime import date, timedelta
 
+import FinanceDataReader as fdr
 import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 from pykrx import stock as pykrx
 
 from stock_analyzer.models import PriceData, StockInfo
@@ -30,7 +34,26 @@ class StockPriceCollector:
         # 시장 구분
         market = self._get_market(code)
 
-        return StockInfo(code=code, name=name, market=market)
+        # 섹터 및 재무 지표 조회 (네이버 금융)
+        naver_data = self._get_naver_finance_data(code)
+        sectors = naver_data.get("sectors", [])
+        per = naver_data.get("per")
+        eps = naver_data.get("eps")
+        pbr = naver_data.get("pbr")
+        bps = naver_data.get("bps")
+        dividend_yield = naver_data.get("dividend_yield")
+
+        return StockInfo(
+            code=code,
+            name=name,
+            market=market,
+            sectors=sectors,
+            per=per,
+            eps=eps,
+            pbr=pbr,
+            bps=bps,
+            dividend_yield=dividend_yield,
+        )
 
     def get_ohlcv(
         self,
@@ -150,6 +173,80 @@ class StockPriceCollector:
 
         return "KOSPI"  # 기본값
 
+    def _get_naver_finance_data(self, code: str) -> dict:
+        """네이버 금융에서 업종 및 재무 지표 조회"""
+        result = {
+            "sectors": [],
+            "per": None,
+            "eps": None,
+            "pbr": None,
+            "bps": None,
+            "dividend_yield": None,
+        }
+
+        try:
+            url = f"https://finance.naver.com/item/main.naver?code={code}"
+            headers = {"User-Agent": "Mozilla/5.0"}
+            resp = requests.get(url, headers=headers, timeout=5)
+
+            if resp.status_code != 200:
+                return result
+
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            # 업종 정보 파싱
+            sectors = []
+            # 패턴 1: 업종 링크
+            matches = re.findall(r'class="sub_tit"[^>]*>([^<]+)</a>', resp.text)
+            if matches:
+                sectors.extend([s.strip() for s in matches if s.strip()])
+
+            # 패턴 2: 업종 텍스트
+            if not sectors:
+                match = re.search(r'업종.*?<a[^>]*>([^<]+)</a>', resp.text, re.DOTALL)
+                if match:
+                    sector = match.group(1).strip()
+                    if sector:
+                        sectors.append(sector)
+
+            result["sectors"] = list(dict.fromkeys(sectors))[:5]
+
+            # PER, PBR 테이블 파싱
+            per_table = soup.find("table", {"class": "per_table"})
+            if per_table:
+                for row in per_table.find_all("tr"):
+                    text = row.get_text()
+
+                    # PER 추출 (추정PER 제외)
+                    if "PER" in text and "추정" not in text:
+                        match = re.search(r"(\d+\.?\d*)\s*배", text)
+                        if match:
+                            result["per"] = float(match.group(1))
+                        # EPS 추출
+                        eps_match = re.search(r"(\d{1,3}(?:,\d{3})*)\s*원", text)
+                        if eps_match:
+                            result["eps"] = float(eps_match.group(1).replace(",", ""))
+
+                    # PBR 추출
+                    if "PBR" in text:
+                        match = re.search(r"(\d+\.?\d*)\s*배", text)
+                        if match:
+                            result["pbr"] = float(match.group(1))
+                        # BPS 추출
+                        bps_match = re.search(r"(\d{1,3}(?:,\d{3})*)\s*원", text)
+                        if bps_match:
+                            result["bps"] = float(bps_match.group(1).replace(",", ""))
+
+            # 배당수익률 파싱
+            div_match = re.search(r"배당수익률.*?(\d+\.?\d*)\s*%", resp.text)
+            if div_match:
+                result["dividend_yield"] = float(div_match.group(1))
+
+        except Exception:
+            pass
+
+        return result
+
     def validate_code(self, code: str) -> bool:
         """종목코드 유효성 검증"""
         if len(code) != 6 or not code.isdigit():
@@ -174,66 +271,54 @@ class StockPriceCollector:
         market: str = "KOSPI",
         top_n: int = 10,
     ) -> list[dict]:
-        """거래대금 상위 종목 조회
+        """거래대금 상위 종목 조회 (FinanceDataReader 사용)
 
         Args:
-            target_date: 조회 날짜 (기본값: 최근 거래일)
-            market: 시장 (KOSPI, KOSDAQ)
+            target_date: 조회 날짜 (미사용, FinanceDataReader는 최신 데이터 반환)
+            market: 시장 (KOSPI, KOSDAQ, ALL)
             top_n: 상위 N개
 
         Returns:
             [{"code": "005930", "name": "삼성전자", "trading_value": 1000000000, "change_rate": 2.5}, ...]
         """
-        if target_date is None:
-            target_date = date.today()
+        try:
+            # FinanceDataReader로 종목 목록 조회 (최신 거래일 기준)
+            if market.upper() == "ALL":
+                kospi = fdr.StockListing("KOSPI")
+                kosdaq = fdr.StockListing("KOSDAQ")
+                df = pd.concat([kospi, kosdaq], ignore_index=True)
+            elif market.upper() == "KOSDAQ":
+                df = fdr.StockListing("KOSDAQ")
+            else:  # KOSPI
+                df = fdr.StockListing("KOSPI")
 
-        # 최근 거래일 찾기 (주말/공휴일 대비)
-        df = None
-        for i in range(14):
-            try_date = (target_date - timedelta(days=i)).strftime("%Y%m%d")
-            try:
-                # 종목 목록 가져오기
-                tickers = pykrx.get_market_ticker_list(try_date, market=market)
-                if tickers:
-                    # 각 종목의 당일 데이터 수집
-                    data = []
-                    for ticker in tickers:
-                        try:
-                            ohlcv = pykrx.get_market_ohlcv(try_date, try_date, ticker)
-                            if not ohlcv.empty:
-                                row = ohlcv.iloc[0]
-                                trading_value = float(row["종가"]) * int(row["거래량"])
-                                data.append({
-                                    "code": ticker,
-                                    "close": float(row["종가"]),
-                                    "volume": int(row["거래량"]),
-                                    "trading_value": trading_value,
-                                    "change_rate": float(row["등락률"]),
-                                })
-                        except Exception:
-                            continue
+            if df.empty:
+                print("종목 목록 조회 실패")
+                return []
 
-                    if data:
-                        # 거래대금 기준 정렬
-                        data.sort(key=lambda x: x["trading_value"], reverse=True)
+            # Amount(거래대금) 기준 정렬
+            df = df.sort_values("Amount", ascending=False)
 
-                        results = []
-                        for item in data[:top_n]:
-                            name = pykrx.get_market_ticker_name(item["code"]) or item["code"]
-                            results.append({
-                                "code": item["code"],
-                                "name": name,
-                                "trading_value": int(item["trading_value"]),
-                                "close": int(item["close"]),
-                                "change_rate": item["change_rate"],
-                                "volume": item["volume"],
-                            })
-                        return results
-            except Exception as e:
-                continue
+            # 상위 N개 선택
+            results = []
+            for _, row in df.head(top_n).iterrows():
+                # 등락률 계산 (ChagesRatio가 있으면 사용, 없으면 계산)
+                change_rate = float(row.get("ChagesRatio", 0) or 0)
 
-        print("거래대금 상위 종목 조회 실패: 거래일을 찾을 수 없습니다.")
-        return []
+                results.append({
+                    "code": str(row["Code"]),
+                    "name": str(row["Name"]),
+                    "trading_value": int(row.get("Amount", 0) or 0),
+                    "close": int(row.get("Close", 0) or 0),
+                    "change_rate": change_rate,
+                    "volume": int(row.get("Volume", 0) or 0),
+                })
+
+            return results
+
+        except Exception as e:
+            print(f"거래대금 상위 종목 조회 실패: {e}")
+            return []
 
     def get_top_stocks_by_change_rate(
         self,

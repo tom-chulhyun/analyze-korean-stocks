@@ -12,6 +12,13 @@ class StockInfo(BaseModel):
     code: str = Field(..., description="종목코드 (6자리)")
     name: str = Field(..., description="종목명")
     market: str = Field(..., description="시장 (KOSPI/KOSDAQ)")
+    sectors: list[str] = Field(default_factory=list, description="업종 목록")
+    # 투자 지표 (네이버 금융)
+    per: float | None = Field(None, description="PER")
+    eps: float | None = Field(None, description="EPS")
+    pbr: float | None = Field(None, description="PBR")
+    bps: float | None = Field(None, description="BPS")
+    dividend_yield: float | None = Field(None, description="배당수익률 (%)")
 
 
 class PriceData(BaseModel):
@@ -92,6 +99,8 @@ class AIAnalysis(BaseModel):
     """AI 분석 결과"""
 
     news_summary: str = Field(..., description="뉴스 핵심 요약")
+    news_analysis: str = Field(default="", description="뉴스 상세 분석")
+    disclosure_analysis: str = Field(default="", description="공시 분석")
     sentiment: str = Field(..., description="감성 (POSITIVE/NEGATIVE/NEUTRAL)")
     sentiment_score: float = Field(..., ge=-1.0, le=1.0, description="감성 점수")
     key_issues: list[str] = Field(default_factory=list, description="주요 이슈")

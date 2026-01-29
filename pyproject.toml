@@ -22,6 +22,7 @@ dependencies = [
     # PDF 생성
     "jinja2>=3.1.0",
     "weasyprint>=60.0",
+    "pypdf>=4.0.0",
     # 차트
     "matplotlib>=3.7.0",
     # 설정
@@ -37,6 +38,7 @@ dependencies = [
     "google-auth>=2.0.0",
     "google-auth-oauthlib>=1.0.0",
     "google-api-python-client>=2.0.0",
+    "finance-datareader>=0.9.101",
 ]
 
 [project.optional-dependencies]

@@ -67,6 +67,7 @@ class ReportGenerator:
             format_number=self._format_number,
             format_percent=self._format_percent,
             format_date=self._format_date,
+            truncate_text=self._truncate_text,
         )
 
         # PDF 생성
@@ -211,3 +212,14 @@ class ReportGenerator:
     def _format_date(value: date) -> str:
         """날짜 포맷팅"""
         return value.strftime("%Y-%m-%d")
+
+    @staticmethod
+    def _truncate_text(text: str | None, max_length: int = 300) -> str:
+        """텍스트 잘라내기 (PDF 렌더링용)"""
+        if not text:
+            return ""
+        # 특수 문자 제거 및 텍스트 정리
+        text = text.strip()
+        if len(text) <= max_length:
+            return text
+        return text[:max_length].rsplit(" ", 1)[0] + "..."

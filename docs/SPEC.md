@@ -321,11 +321,13 @@ stock-report [OPTIONS] CODES...
 class Settings(BaseSettings):
     dart_api_key: str
     openai_api_key: str | None = None
+    naver_client_id: str | None = None
+    naver_client_secret: str | None = None
     kakao_rest_api_key: str | None = None
     kakao_redirect_uri: str = "http://localhost:8080/callback"
-    google_credentials_path: Path | None = None
 
     output_dir: Path = Path("./output")
+    token_dir: Path = Path.home() / ".stock-analyzer"
 
     model_config = SettingsConfigDict(
         env_file=".env",

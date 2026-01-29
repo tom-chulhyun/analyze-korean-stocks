@@ -5,7 +5,7 @@ import json
 from openai import OpenAI
 
 from stock_analyzer.config import get_settings
-from stock_analyzer.models import AIAnalysis, NewsArticle
+from stock_analyzer.models import AIAnalysis, Disclosure, NewsArticle
 
 
 class AIAnalyzer:
@@ -28,6 +28,7 @@ class AIAnalyzer:
         self,
         stock_name: str,
         articles: list[NewsArticle],
+        disclosures: list[Disclosure],
         report_data: dict,
     ) -> AIAnalysis | None:
         """전체 AI 분석 수행"""
@@ -38,14 +39,26 @@ class AIAnalyzer:
             # 뉴스 요약
             news_summary = self.summarize_news(stock_name, articles)
 
+            # 뉴스 상세 분석
+            news_analysis = self.analyze_news(stock_name, articles)
+
+            # 공시 분석
+            disclosure_analysis = self.analyze_disclosures(stock_name, disclosures)
+
             # 감성 분석
-            sentiment, sentiment_score, key_issues = self.analyze_sentiment(stock_name, articles)
+            sentiment, sentiment_score, key_issues = self.analyze_sentiment(
+                stock_name, articles, disclosures
+            )
 
             # 종합 의견 생성
-            overall_opinion = self.generate_opinion(stock_name, report_data, news_summary)
+            overall_opinion = self.generate_opinion(
+                stock_name, report_data, news_summary, disclosure_analysis
+            )
 
             return AIAnalysis(
                 news_summary=news_summary,
+                news_analysis=news_analysis,
+                disclosure_analysis=disclosure_analysis,
                 sentiment=sentiment,
                 sentiment_score=sentiment_score,
                 key_issues=key_issues,
@@ -95,24 +108,118 @@ class AIAnalyzer:
         except Exception:
             return "뉴스 요약 생성 실패"
 
+    def analyze_news(
+        self,
+        stock_name: str,
+        articles: list[NewsArticle],
+    ) -> str:
+        """뉴스 상세 분석 - 투자에 미치는 영향"""
+        if not self._client or not articles:
+            return ""
+
+        news_text = "\n".join(
+            [f"- [{a.source}] {a.title}" for a in articles[:10]]
+        )
+
+        prompt = f"""다음은 {stock_name} 관련 최근 뉴스 헤드라인입니다.
+투자 관점에서 핵심 내용을 분석해주세요.
+
+뉴스 목록:
+{news_text}
+
+분석 요청:
+- 사업/실적 관련 핵심 뉴스와 함의
+- 시장/업종 동향의 영향
+- 투자자 주목 포인트
+
+**5-10문장으로 작성하세요. 번호나 기호 없이 자연스러운 문장으로 작성하세요.**"""
+
+        try:
+            response = self._client.chat.completions.create(
+                model=self._model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "당신은 주식 시장 뉴스를 분석하는 전문 애널리스트입니다. 핵심을 5-10문장으로 분석하세요.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=500,
+                temperature=0.3,
+            )
+            return response.choices[0].message.content or ""
+        except Exception:
+            return ""
+
+    def analyze_disclosures(
+        self,
+        stock_name: str,
+        disclosures: list[Disclosure],
+    ) -> str:
+        """DART 공시 분석 - 공시 내용의 의미와 영향"""
+        if not self._client or not disclosures:
+            return ""
+
+        disclosure_text = "\n".join(
+            [f"- [{d.date[:4]}-{d.date[4:6]}-{d.date[6:]}] {d.title} (공시자: {d.filer})"
+             for d in disclosures[:10]]
+        )
+
+        prompt = f"""다음은 {stock_name}의 최근 DART 공시 목록입니다.
+투자 관점에서 핵심 내용을 분석해주세요.
+
+공시 목록:
+{disclosure_text}
+
+분석 요청:
+- 주요 공시의 핵심 내용과 의미
+- 재무/경영 관련 시사점
+- 투자자 주의 사항
+
+**5-10문장으로 작성하세요. 번호나 기호 없이 자연스러운 문장으로 작성하세요.**"""
+
+        try:
+            response = self._client.chat.completions.create(
+                model=self._model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "당신은 기업 공시 분석 전문가입니다. 핵심을 5-10문장으로 분석하세요.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=500,
+                temperature=0.3,
+            )
+            return response.choices[0].message.content or ""
+        except Exception:
+            return ""
+
     def analyze_sentiment(
         self,
         stock_name: str,
         articles: list[NewsArticle],
+        disclosures: list[Disclosure] | None = None,
     ) -> tuple[str, float, list[str]]:
-        """감성 분석"""
-        if not self._client or not articles:
+        """감성 분석 (뉴스 + 공시)"""
+        if not self._client or (not articles and not disclosures):
             return "NEUTRAL", 0.0, []
 
         news_text = "\n".join(
-            [f"- {a.title}" for a in articles[:10]]
-        )
+            [f"- [뉴스] {a.title}" for a in articles[:10]]
+        ) if articles else ""
 
-        prompt = f"""다음은 {stock_name} 관련 최근 뉴스 헤드라인입니다.
-뉴스의 전반적인 감성과 주요 이슈를 분석해주세요.
+        disclosure_text = "\n".join(
+            [f"- [공시] {d.title}" for d in (disclosures or [])[:5]]
+        ) if disclosures else ""
 
-뉴스 목록:
-{news_text}
+        combined_text = f"{news_text}\n{disclosure_text}".strip()
+
+        prompt = f"""다음은 {stock_name} 관련 최근 뉴스 및 DART 공시 목록입니다.
+전반적인 감성과 주요 이슈를 분석해주세요.
+
+목록:
+{combined_text}
 
 다음 JSON 형식으로 응답해주세요:
 {{
@@ -163,6 +270,7 @@ JSON:"""
         stock_name: str,
         report_data: dict,
         news_summary: str,
+        disclosure_analysis: str = "",
     ) -> str:
         """종합 의견 생성"""
         if not self._client:
@@ -171,35 +279,20 @@ JSON:"""
         # 리포트 데이터에서 핵심 정보 추출
         latest_price = report_data.get("latest_price", {})
         signals = report_data.get("signals", [])
-        financials = report_data.get("financials", [])
 
-        signals_text = "\n".join(
-            [f"- {s.get('indicator', '')}: {s.get('signal', '')} ({s.get('reason', '')})" for s in signals]
+        signals_text = ", ".join(
+            [f"{s.get('indicator', '')}: {s.get('signal', '')}" for s in signals]
         ) if signals else "시그널 없음"
 
-        financials_text = ""
-        for f in financials[:2]:
-            financials_text += f"- {f.get('year', '')}년: 매출 {f.get('revenue', 'N/A')}, 영업이익 {f.get('operating_income', 'N/A')}\n"
+        prompt = f"""다음은 {stock_name}의 핵심 분석 데이터입니다.
 
-        prompt = f"""다음은 {stock_name}의 분석 데이터입니다. 종합적인 투자 의견을 작성해주세요.
+- 현재가: {latest_price.get('close', 'N/A')}원 ({latest_price.get('change_rate', 'N/A')}%)
+- 기술적 시그널: {signals_text}
+- 뉴스 요약: {news_summary[:300] if news_summary else 'N/A'}
 
-## 최근 주가
-- 종가: {latest_price.get('close', 'N/A')}원
-- 등락률: {latest_price.get('change_rate', 'N/A')}%
+위 정보를 바탕으로 종합 투자 의견을 작성해주세요.
 
-## 기술적 시그널
-{signals_text}
-
-## 재무 현황
-{financials_text}
-
-## 뉴스 요약
-{news_summary}
-
-위 정보를 종합하여 투자자에게 도움이 될 수 있는 의견을 4-5문장으로 작성해주세요.
-단, 투자 권유가 아닌 정보 제공 목적임을 명시하고, 투자 결정은 개인의 판단임을 언급해주세요.
-
-종합 의견:"""
+**5-10문장으로 작성하세요. 마지막에 "투자 결정은 개인의 판단"임을 언급하세요.**"""
 
         try:
             response = self._client.chat.completions.create(
@@ -207,11 +300,11 @@ JSON:"""
                 messages=[
                     {
                         "role": "system",
-                        "content": "당신은 객관적인 주식 시장 애널리스트입니다. 과도한 낙관이나 비관 없이 균형 잡힌 의견을 제시하세요.",
+                        "content": "당신은 객관적인 주식 시장 애널리스트입니다. 핵심을 5-10문장으로 분석하세요.",
                     },
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=600,
+                max_tokens=500,
                 temperature=0.4,
             )
             return response.choices[0].message.content or "종합 의견 생성 실패"

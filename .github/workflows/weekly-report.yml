@@ -1,31 +1,31 @@
-name: Weekly Stock Report
+name: Stock Report
 
 on:
   schedule:
-    # 매주 월요일 한국시간 오전 9시 (UTC 0시)
-    - cron: '0 0 * * 1'
+    # 2일마다 한국시간 오전 9시 (UTC 0시)
+    - cron: '0 0 */2 * *'
   workflow_dispatch:
     inputs:
-      mode:
-        description: '분석 모드'
-        required: true
-        default: 'auto'
-        type: choice
-        options:
-          - auto          # 거래대금 상위 자동 선정
-          - manual        # 종목코드 직접 입력
-      stock_codes:
-        description: '종목코드 (manual 모드, 쉼표 구분)'
-        required: false
-        default: ''
       top_n:
-        description: '상위 N개 종목 (auto 모드)'
+        description: '상위 N개 종목'
         required: false
         default: '10'
+      market:
+        description: '시장 (KOSPI/KOSDAQ/ALL)'
+        required: false
+        default: 'ALL'
       period:
         description: '분석 기간 (일)'
         required: false
         default: '30'
+      merge:
+        description: '하나의 PDF로 병합'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 env:
   DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -64,46 +64,26 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Get top stocks and generate reports
+      - name: Generate reports (auto-select top stocks)
         run: |
-          MODE="${{ github.event.inputs.mode || 'auto' }}"
-          PERIOD="${{ github.event.inputs.period || '30' }}"
           TOP_N="${{ github.event.inputs.top_n || '10' }}"
-          MANUAL_CODES="${{ github.event.inputs.stock_codes || '' }}"
+          MARKET="${{ github.event.inputs.market || 'ALL' }}"
+          PERIOD="${{ github.event.inputs.period || '30' }}"
+          MERGE="${{ github.event.inputs.merge || 'true' }}"
 
           echo "=========================================="
-          echo "분석 모드: $MODE"
+          echo "거래대금 상위 ${TOP_N}개 종목 분석"
+          echo "시장: ${MARKET}"
           echo "분석 기간: ${PERIOD}일"
+          echo "PDF 병합: ${MERGE}"
           echo "=========================================="
 
-          if [ "$MODE" = "manual" ] && [ -n "$MANUAL_CODES" ]; then
-            # 수동 모드: 입력된 종목코드 사용
-            CODES="$MANUAL_CODES"
-            echo "수동 입력 종목: $CODES"
-          else
-            # 자동 모드: 거래대금 상위 종목 조회
-            echo "거래대금 상위 ${TOP_N}개 종목 조회 중..."
-            CODES=$(uv run python -c "
-          from stock_analyzer.collectors.stock_price import StockPriceCollector
-          collector = StockPriceCollector()
-          stocks = collector.get_top_stocks_by_trading_value(top_n=${TOP_N})
-          print(','.join([s['code'] for s in stocks]))
-          ")
-            echo "선정된 종목: $CODES"
+          # 자동 종목 선정 + 리포트 생성
+          MERGE_FLAG=""
+          if [ "$MERGE" = "true" ]; then
+            MERGE_FLAG="--merge"
           fi
-
-          # 종목별 리포트 생성
-          IFS=',' read -ra CODE_ARRAY <<< "$CODES"
-          for CODE in "${CODE_ARRAY[@]}"; do
-            CODE=$(echo "$CODE" | xargs)  # trim whitespace
-            if [ -n "$CODE" ]; then
-              echo ""
-              echo "=========================================="
-              echo "리포트 생성: $CODE"
-              echo "=========================================="
-              uv run stock-report "$CODE" --period "$PERIOD" || echo "⚠️ $CODE 리포트 생성 실패"
-            fi
-          done
+          uv run stock-report --top "$TOP_N" --market "$MARKET" --period "$PERIOD" $MERGE_FLAG --no-ai || echo "⚠️ 일부 리포트 생성 실패"
 
       - name: Upload reports to GitHub
         run: |
@@ -111,7 +91,7 @@ jobs:
           from pathlib import Path
           from stock_analyzer.notifiers.github_uploader import GitHubUploader
 
-          uploader = GitHubUploader(max_reports=10)
+          uploader = GitHubUploader(max_reports=20)
           pdf_files = list(Path('./output').glob('*.pdf'))
 
           if pdf_files:

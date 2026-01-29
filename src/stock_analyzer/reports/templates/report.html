@@ -6,468 +6,540 @@
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1cm 1.2cm;
         }
 
         * {
             box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Apple SD Gothic Neo', 'Nanum Gothic', 'Malgun Gothic', sans-serif;
-            font-size: 11pt;
-            line-height: 1.6;
-            color: #333;
             margin: 0;
             padding: 0;
         }
 
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Nanum Gothic', 'Malgun Gothic', sans-serif;
+            font-size: 8pt;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        /* 헤더 */
         .header {
-            border-bottom: 3px solid #2962FF;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #2962FF;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .header h1 {
             color: #2962FF;
-            font-size: 24pt;
-            margin: 0 0 5px 0;
+            font-size: 16pt;
+            margin-bottom: 2px;
+            display: inline-block;
         }
 
         .header .subtitle {
             color: #666;
-            font-size: 12pt;
+            font-size: 9pt;
+        }
+
+        .sector-tags {
+            margin-top: 4px;
+        }
+
+        .sector-tag {
+            display: inline-block;
+            background: #E3F2FD;
+            color: #1565C0;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 7pt;
+            margin-right: 4px;
         }
 
         .header .meta {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            font-size: 10pt;
+            float: right;
+            text-align: right;
+            font-size: 7pt;
             color: #888;
         }
 
-        .section {
-            margin-bottom: 25px;
-            page-break-inside: avoid;
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
         }
 
-        .section h2 {
-            color: #2962FF;
-            font-size: 14pt;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+        /* 요약 카드 */
+        .summary-row {
+            margin-bottom: 8px;
         }
 
         .summary-card {
+            display: inline-block;
+            width: 18%;
             background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
+            border-radius: 4px;
+            padding: 6px 8px;
             text-align: center;
+            margin-right: 2%;
+            vertical-align: top;
+        }
+
+        .summary-card:last-child {
+            margin-right: 0;
         }
 
         .summary-card .label {
-            font-size: 10pt;
+            font-size: 7pt;
             color: #666;
-            margin-bottom: 5px;
         }
 
         .summary-card .value {
-            font-size: 16pt;
+            font-size: 11pt;
             font-weight: bold;
-            color: #333;
         }
 
-        .summary-card .value.positive {
-            color: #26A69A;
+        .positive { color: #26A69A; }
+        .negative { color: #EF5350; }
+
+        /* 섹션 스타일 */
+        .section {
+            margin-bottom: 10px;
         }
 
-        .summary-card .value.negative {
-            color: #EF5350;
+        .section-title {
+            color: #2962FF;
+            font-size: 9pt;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 3px;
+            margin-bottom: 6px;
         }
 
+        /* 2단 레이아웃 */
+        .row {
+            margin-bottom: 10px;
+        }
+
+        .col-half {
+            display: inline-block;
+            width: 48%;
+            vertical-align: top;
+        }
+
+        .col-half:first-child {
+            margin-right: 3%;
+        }
+
+        /* 차트 */
         .chart-container {
             text-align: center;
-            margin: 15px 0;
         }
 
         .chart-container img {
             max-width: 100%;
-            height: auto;
+            max-height: 120px;
         }
 
+        /* 테이블 */
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10pt;
+            font-size: 7pt;
         }
 
         th, td {
             border: 1px solid #ddd;
-            padding: 8px 10px;
+            padding: 3px 5px;
             text-align: left;
         }
 
         th {
             background: #f8f9fa;
             font-weight: bold;
-            color: #333;
         }
 
-        tr:nth-child(even) {
-            background: #fafafa;
-        }
-
+        /* 시그널 배지 */
         .signal-badge {
             display: inline-block;
-            padding: 3px 10px;
-            border-radius: 4px;
-            font-size: 9pt;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 6pt;
             font-weight: bold;
         }
 
-        .signal-buy {
-            background: #E8F5E9;
-            color: #26A69A;
+        .signal-buy { background: #E8F5E9; color: #26A69A; }
+        .signal-sell { background: #FFEBEE; color: #EF5350; }
+        .signal-hold { background: #FFF3E0; color: #FF9800; }
+
+        /* 기술적 지표 미니 */
+        .indicator-mini {
+            padding: 3px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 7pt;
         }
 
-        .signal-sell {
-            background: #FFEBEE;
-            color: #EF5350;
+        .indicator-mini:last-child {
+            border-bottom: none;
         }
 
-        .signal-hold {
-            background: #FFF3E0;
-            color: #FF9800;
+        .indicator-mini span {
+            display: inline-block;
+        }
+
+        .indicator-mini .label {
+            width: 40%;
+        }
+
+        .indicator-mini .value {
+            width: 55%;
+            text-align: right;
+        }
+
+        /* AI 분석 섹션 */
+        .ai-section {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .ai-header {
+            margin-bottom: 8px;
         }
 
         .sentiment-badge {
             display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 10pt;
-            font-weight: bold;
-        }
-
-        .sentiment-positive {
-            background: #E8F5E9;
-            color: #26A69A;
-        }
-
-        .sentiment-negative {
-            background: #FFEBEE;
-            color: #EF5350;
-        }
-
-        .sentiment-neutral {
-            background: #FFF3E0;
-            color: #FF9800;
-        }
-
-        .news-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .news-item {
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .news-item:last-child {
-            border-bottom: none;
-        }
-
-        .news-title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 3px;
-        }
-
-        .news-meta {
-            font-size: 9pt;
-            color: #888;
-        }
-
-        .ai-section {
-            background: linear-gradient(135deg, #f5f7fa 0%, #e8f4fd 100%);
+            padding: 2px 8px;
             border-radius: 10px;
-            padding: 20px;
+            font-size: 7pt;
+            font-weight: bold;
+            margin-left: 10px;
         }
 
-        .ai-opinion {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            border-left: 4px solid #2962FF;
-            margin-top: 15px;
-        }
+        .sentiment-positive { background: #E8F5E9; color: #26A69A; }
+        .sentiment-negative { background: #FFEBEE; color: #EF5350; }
+        .sentiment-neutral { background: #FFF3E0; color: #FF9800; }
 
         .key-issues {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
+            margin-bottom: 8px;
         }
 
         .issue-tag {
+            display: inline-block;
             background: #E3F2FD;
             color: #1976D2;
-            padding: 4px 10px;
-            border-radius: 15px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 6pt;
+            margin-right: 4px;
+            margin-bottom: 2px;
+        }
+
+        .ai-box {
+            background: white;
+            border-radius: 4px;
+            padding: 8px;
+            border-left: 3px solid #2962FF;
+            font-size: 7.5pt;
+            margin-bottom: 8px;
+        }
+
+        .ai-box.disclosure {
+            border-left-color: #FF9800;
+        }
+
+        .ai-box.opinion {
+            border-left-color: #26A69A;
+        }
+
+        .ai-box-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 8pt;
+        }
+
+        .ai-box p {
+            margin: 0;
+            line-height: 1.45;
+        }
+
+        /* 참고자료 */
+        .reference-list {
+            list-style: none;
+            font-size: 6pt;
+        }
+
+        .reference-list li {
+            padding: 2px 0;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .reference-list a {
+            color: #2962FF;
+            text-decoration: none;
+        }
+
+        .reference-list .meta {
+            color: #888;
+            font-size: 5pt;
+        }
+
+        /* 외부 링크 */
+        .external-links {
+            margin: 10px 0 16px 0;
+            padding: 10px 12px;
+            background: #E3F2FD;
+            border-radius: 6px;
+            border-left: 3px solid #1976D2;
+        }
+
+        .external-links-title {
             font-size: 9pt;
+            font-weight: bold;
+            color: #1565C0;
+            margin-bottom: 6px;
+        }
+
+        .external-link {
+            display: inline-block;
+            font-size: 8pt;
+            color: #1976D2;
+            text-decoration: none;
+            margin-right: 16px;
+            padding: 3px 8px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .external-link:hover {
+            text-decoration: underline;
+            background: #BBDEFB;
         }
 
         .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-            font-size: 9pt;
-            color: #888;
             text-align: center;
-        }
-
-        .disclaimer {
-            background: #FFF3E0;
-            border-radius: 5px;
-            padding: 10px;
-            font-size: 9pt;
-            color: #E65100;
-            margin-top: 15px;
+            font-size: 6pt;
+            color: #888;
+            margin-top: 6px;
         }
     </style>
 </head>
 <body>
-    <div class="header">
+    <!-- 헤더 -->
+    <div class="header clearfix">
+        <div class="meta">
+            분석: {{ format_date(report.period_start) }} ~ {{ format_date(report.period_end) }}<br>
+            생성: {{ report.generated_at.strftime('%Y-%m-%d %H:%M') }}
+        </div>
         <h1>{{ report.stock_info.name }}</h1>
         <div class="subtitle">{{ report.stock_info.code }} | {{ report.stock_info.market }}</div>
-        <div class="meta">
-            <span>분석 기간: {{ format_date(report.period_start) }} ~ {{ format_date(report.period_end) }}</span>
-            <span>생성일시: {{ report.generated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        {% if report.stock_info.sectors %}
+        <div class="sector-tags">
+            {% for sector in report.stock_info.sectors %}
+            <span class="sector-tag">{{ sector }}</span>
+            {% endfor %}
         </div>
+        {% endif %}
     </div>
 
     <!-- 요약 정보 -->
-    <div class="section">
-        <h2>요약 정보</h2>
-        {% if report.latest_price %}
-        <div class="summary-grid">
-            <div class="summary-card">
-                <div class="label">현재가</div>
-                <div class="value">{{ format_number(report.latest_price.close) }}원</div>
+    {% if report.latest_price %}
+    <div class="summary-row">
+        <div class="summary-card">
+            <div class="label">현재가</div>
+            <div class="value">{{ format_number(report.latest_price.close) }}원</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">등락률</div>
+            <div class="value {% if report.latest_price.change_rate >= 0 %}positive{% else %}negative{% endif %}">
+                {{ format_percent(report.latest_price.change_rate) }}
             </div>
-            <div class="summary-card">
-                <div class="label">등락률</div>
-                <div class="value {% if report.latest_price.change_rate >= 0 %}positive{% else %}negative{% endif %}">
-                    {{ format_percent(report.latest_price.change_rate) }}
+        </div>
+        <div class="summary-card">
+            <div class="label">거래대금</div>
+            <div class="value">{{ format_number(report.latest_price.trading_value) }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">PER</div>
+            <div class="value">{{ "%.1f"|format(report.stock_info.per) if report.stock_info.per else "-" }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">PBR</div>
+            <div class="value">{{ "%.2f"|format(report.stock_info.pbr) if report.stock_info.pbr else "-" }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 외부 링크 -->
+    <div class="external-links">
+        <div class="external-links-title">📊 상세 재무정보</div>
+        <a class="external-link" href="https://finance.naver.com/item/main.naver?code={{ report.stock_info.code }}" target="_blank">네이버 금융</a>
+        <a class="external-link" href="https://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&giession=Y&cID=&MenuYn=Y&ReportGB=&NewMenuID=101&stkGb=701&giession=Y&pGB=1&cID=&MenuYn=Y&ReportGB=&NewMenuID=11&stkGb=701&code={{ report.stock_info.code }}" target="_blank">FnGuide</a>
+        <a class="external-link" href="https://dart.fss.or.kr/dsab002/main.do?autoSearch=true&textCrpNm={{ report.stock_info.name }}" target="_blank">DART 공시</a>
+        <a class="external-link" href="https://www.investing.com/search/?q={{ report.stock_info.name }}" target="_blank">Investing.com</a>
+    </div>
+
+    <!-- 차트 & 지표 -->
+    <div class="row">
+        <div class="col-half">
+            <div class="section">
+                <div class="section-title">주가 추이</div>
+                {% if price_chart %}
+                <div class="chart-container">
+                    <img src="{{ price_chart }}" alt="주가 차트">
                 </div>
-            </div>
-            <div class="summary-card">
-                <div class="label">거래대금</div>
-                <div class="value">{{ format_number(report.latest_price.trading_value) }}</div>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
-    </div>
-
-    <!-- 가격 차트 -->
-    {% if price_chart %}
-    <div class="section">
-        <h2>주가 추이</h2>
-        <div class="chart-container">
-            <img src="{{ price_chart }}" alt="주가 차트">
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- 기술적 지표 -->
-    {% if indicator_chart %}
-    <div class="section">
-        <h2>기술적 지표</h2>
-        <div class="chart-container">
-            <img src="{{ indicator_chart }}" alt="기술적 지표 차트">
-        </div>
-
-        {% if report.latest_indicators %}
-        <table>
-            <tr>
-                <th>지표</th>
-                <th>현재값</th>
-                <th>해석</th>
-            </tr>
-            <tr>
-                <td>RSI (14)</td>
-                <td>{{ "%.1f"|format(report.latest_indicators.rsi) if report.latest_indicators.rsi else "-" }}</td>
-                <td>
-                    {% if report.latest_indicators.rsi %}
-                        {% if report.latest_indicators.rsi > 70 %}과매수 구간
-                        {% elif report.latest_indicators.rsi < 30 %}과매도 구간
-                        {% else %}중립 구간{% endif %}
-                    {% else %}-{% endif %}
-                </td>
-            </tr>
-            <tr>
-                <td>TRIX (15, 9)</td>
-                <td>{{ "%.4f"|format(report.latest_indicators.trix) if report.latest_indicators.trix else "-" }}</td>
-                <td>
-                    {% if report.latest_indicators.trix and report.latest_indicators.trix_signal %}
-                        {% if report.latest_indicators.trix > report.latest_indicators.trix_signal %}상승 추세
-                        {% else %}하락 추세{% endif %}
-                    {% else %}-{% endif %}
-                </td>
-            </tr>
-            <tr>
-                <td>MACD (12, 26, 9)</td>
-                <td>{{ "%.0f"|format(report.latest_indicators.macd) if report.latest_indicators.macd else "-" }}</td>
-                <td>
-                    {% if report.latest_indicators.macd and report.latest_indicators.macd_signal %}
-                        {% if report.latest_indicators.macd > report.latest_indicators.macd_signal %}매수 우위
-                        {% else %}매도 우위{% endif %}
-                    {% else %}-{% endif %}
-                </td>
-            </tr>
-        </table>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- 매매 시그널 -->
-    {% if report.signals %}
-    <div class="section">
-        <h2>매매 시그널</h2>
-        <table>
-            <tr>
-                <th>지표</th>
-                <th>시그널</th>
-                <th>사유</th>
-                <th>강도</th>
-            </tr>
-            {% for signal in report.signals %}
-            <tr>
-                <td>{{ signal.indicator }}</td>
-                <td>
-                    <span class="signal-badge signal-{{ signal.signal.value|lower }}">
-                        {{ signal.signal.value }}
+        <div class="col-half">
+            <div class="section">
+                <div class="section-title">기술적 지표</div>
+                {% if report.latest_indicators %}
+                <div class="indicator-mini">
+                    <span class="label">RSI (14)</span>
+                    <span class="value">
+                        <strong>{{ "%.1f"|format(report.latest_indicators.rsi) if report.latest_indicators.rsi else "-" }}</strong>
+                        {% if report.latest_indicators.rsi %}
+                            {% if report.latest_indicators.rsi > 70 %}과매수
+                            {% elif report.latest_indicators.rsi < 30 %}과매도
+                            {% else %}중립{% endif %}
+                        {% endif %}
                     </span>
-                </td>
-                <td>{{ signal.reason }}</td>
-                <td>{{ "★" * signal.strength }}{{ "☆" * (5 - signal.strength) }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-    {% endif %}
+                </div>
+                <div class="indicator-mini">
+                    <span class="label">TRIX (15,9)</span>
+                    <span class="value">
+                        <strong>{{ "%.4f"|format(report.latest_indicators.trix) if report.latest_indicators.trix else "-" }}</strong>
+                        {% if report.latest_indicators.trix and report.latest_indicators.trix_signal %}
+                            {% if report.latest_indicators.trix > report.latest_indicators.trix_signal %}상승{% else %}하락{% endif %}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="indicator-mini">
+                    <span class="label">MACD (12,26,9)</span>
+                    <span class="value">
+                        <strong>{{ "%.0f"|format(report.latest_indicators.macd) if report.latest_indicators.macd else "-" }}</strong>
+                        {% if report.latest_indicators.macd and report.latest_indicators.macd_signal %}
+                            {% if report.latest_indicators.macd > report.latest_indicators.macd_signal %}매수{% else %}매도{% endif %}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
 
-    <!-- 재무 정보 -->
-    {% if report.financials %}
-    <div class="section">
-        <h2>재무 정보</h2>
-        <table>
-            <tr>
-                <th>연도</th>
-                <th>매출액</th>
-                <th>영업이익</th>
-                <th>당기순이익</th>
-            </tr>
-            {% for fin in report.financials %}
-            <tr>
-                <td>{{ fin.year }}년 {{ fin.quarter if fin.quarter else "" }}</td>
-                <td>{{ format_number(fin.revenue) if fin.revenue else "-" }}</td>
-                <td>{{ format_number(fin.operating_income) if fin.operating_income else "-" }}</td>
-                <td>{{ format_number(fin.net_income) if fin.net_income else "-" }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+                {% if report.signals %}
+                <table style="margin-top: 6px;">
+                    <tr><th>지표</th><th>시그널</th><th>사유</th></tr>
+                    {% for signal in report.signals[:3] %}
+                    <tr>
+                        <td>{{ signal.indicator }}</td>
+                        <td><span class="signal-badge signal-{{ signal.signal.value|lower }}">{{ signal.signal.value }}</span></td>
+                        <td>{{ signal.reason[:30] }}{% if signal.reason|length > 30 %}...{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    {% endif %}
 
     <!-- AI 분석 -->
     {% if report.ai_analysis %}
     <div class="section">
-        <h2>AI 분석</h2>
+        <div class="section-title">AI 분석</div>
         <div class="ai-section">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: bold;">뉴스 감성 분석</span>
+            <div class="ai-header">
+                <strong style="font-size: 8pt;">감성 분석</strong>
                 <span class="sentiment-badge sentiment-{{ report.ai_analysis.sentiment|lower }}">
-                    {{ report.ai_analysis.sentiment }}
-                    ({{ "%+.2f"|format(report.ai_analysis.sentiment_score) }})
+                    {{ report.ai_analysis.sentiment }} ({{ "%+.2f"|format(report.ai_analysis.sentiment_score) }})
                 </span>
-            </div>
-
-            {% if report.ai_analysis.key_issues %}
-            <div class="key-issues">
-                {% for issue in report.ai_analysis.key_issues %}
+                {% if report.ai_analysis.key_issues %}
+                &nbsp;&nbsp;
+                {% for issue in report.ai_analysis.key_issues[:5] %}
                 <span class="issue-tag">{{ issue }}</span>
                 {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="ai-box">
+                <div class="ai-box-title">뉴스 분석</div>
+                <p>{{ report.ai_analysis.news_analysis if report.ai_analysis.news_analysis else report.ai_analysis.news_summary }}</p>
+            </div>
+
+            {% if report.ai_analysis.disclosure_analysis %}
+            <div class="ai-box disclosure">
+                <div class="ai-box-title">공시 분석</div>
+                <p>{{ report.ai_analysis.disclosure_analysis }}</p>
             </div>
             {% endif %}
 
-            <div class="ai-opinion">
-                <div style="font-weight: bold; margin-bottom: 10px;">뉴스 요약</div>
-                <p>{{ report.ai_analysis.news_summary }}</p>
-            </div>
-
-            <div class="ai-opinion">
-                <div style="font-weight: bold; margin-bottom: 10px;">종합 의견</div>
+            <div class="ai-box opinion">
+                <div class="ai-box-title">종합 의견</div>
                 <p>{{ report.ai_analysis.overall_opinion }}</p>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- 참고 자료 (Reference) -->
-    {% if report.news or report.disclosures %}
-    <div class="section">
-        <h2>참고 자료</h2>
+    <!-- 하단 정보 -->
+    <div class="row">
+        {% if report.financials %}
+        <div class="col-half">
+            <div class="section">
+                <div class="section-title">재무 정보</div>
+                <table>
+                    <tr><th>연도</th><th>매출액</th><th>영업이익</th><th>순이익</th></tr>
+                    {% for fin in report.financials[:2] %}
+                    <tr>
+                        <td>{{ fin.year }}</td>
+                        <td>{{ format_number(fin.revenue) if fin.revenue else "-" }}</td>
+                        <td>{{ format_number(fin.operating_income) if fin.operating_income else "-" }}</td>
+                        <td>{{ format_number(fin.net_income) if fin.net_income else "-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        {% endif %}
 
+        <!-- 참고 자료: 뉴스 -->
         {% if report.news %}
-        <div style="margin-bottom: 15px;">
-            <h3 style="font-size: 11pt; color: #555; margin-bottom: 10px;">뉴스 출처</h3>
-            <ul style="list-style: none; padding: 0; font-size: 9pt;">
-                {% for article in report.news[:10] %}
-                <li style="padding: 5px 0; border-bottom: 1px solid #eee;">
-                    <a href="{{ article.link }}" style="color: #2962FF; text-decoration: none;">{{ article.title }}</a>
-                    <br>
-                    <span style="color: #888;">{{ article.source }} | {{ article.published_at.strftime('%Y-%m-%d') }}</span>
-                </li>
-                {% endfor %}
-            </ul>
+        <div class="col-half">
+            <div class="section">
+                <div class="section-title">참고 뉴스</div>
+                <ul class="reference-list">
+                    {% for article in report.news[:5] %}
+                    <li>
+                        <a href="{{ article.link }}">{{ article.title[:45] }}{% if article.title|length > 45 %}...{% endif %}</a>
+                        <span class="meta">{{ article.source }} {{ article.published_at.strftime('%m/%d') }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
         {% endif %}
 
+        <!-- 참고 자료: 공시 -->
         {% if report.disclosures %}
-        <div>
-            <h3 style="font-size: 11pt; color: #555; margin-bottom: 10px;">DART 공시</h3>
-            <ul style="list-style: none; padding: 0; font-size: 9pt;">
-                {% for disclosure in report.disclosures %}
-                <li style="padding: 5px 0; border-bottom: 1px solid #eee;">
-                    <a href="{{ disclosure.link }}" style="color: #2962FF; text-decoration: none;">{{ disclosure.title }}</a>
-                    <br>
-                    <span style="color: #888;">{{ disclosure.filer }} | {{ disclosure.date[:4] }}-{{ disclosure.date[4:6] }}-{{ disclosure.date[6:] }}</span>
-                </li>
-                {% endfor %}
-            </ul>
+        <div class="col-half">
+            <div class="section">
+                <div class="section-title">참고 공시</div>
+                <ul class="reference-list">
+                    {% for d in report.disclosures[:5] %}
+                    <li>
+                        <a href="{{ d.link }}">{{ d.title[:45] }}{% if d.title|length > 45 %}...{% endif %}</a>
+                        <span class="meta">{{ d.date[4:6] }}/{{ d.date[6:] }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
         {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- 면책조항 -->
-    <div class="disclaimer">
-        <strong>면책조항:</strong> 이 리포트는 정보 제공 목적으로만 작성되었으며, 투자 권유나 조언이 아닙니다.
-        모든 투자 결정은 본인의 판단과 책임 하에 이루어져야 합니다.
-        과거의 주가 추이가 미래의 성과를 보장하지 않습니다.
     </div>
 
     <div class="footer">
-        Generated by Stock Analyzer | {{ report.generated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        Stock Analyzer | {{ report.generated_at.strftime('%Y-%m-%d %H:%M') }} | 본 리포트는 정보 제공 목적이며 투자 권유가 아닙니다.
     </div>
 </body>
 </html>

@@ -73,7 +73,10 @@ class TechnicalIndicatorCalculator:
     ) -> pd.Series:
         """RSI 계산"""
         length = length or self.rsi_length
-        return ta.rsi(close, length=length)
+        result = ta.rsi(close, length=length)
+        if result is None:
+            return pd.Series([None] * len(close), index=close.index)
+        return result
 
     def calculate_trix(
         self,

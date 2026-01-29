@@ -32,18 +32,6 @@ class Settings(BaseSettings):
         description="카카오 OAuth 리다이렉트 URI",
     )
 
-    # Google Drive API (선택) - Service Account 방식
-    google_service_account_path: Path | None = Field(
-        default=None,
-        description="Google Service Account JSON 키 경로",
-    )
-
-    # GitHub Repository (선택) - 리포트 저장용
-    github_report_repo: str | None = Field(
-        default=None,
-        description="GitHub 리포트 저장 Repository (예: username/stock-reports)",
-    )
-
     # 출력 설정
     output_dir: Path = Field(
         default=Path("./output"),
@@ -70,11 +58,6 @@ class Settings(BaseSettings):
     def has_kakao(self) -> bool:
         """카카오톡 API 사용 가능 여부"""
         return bool(self.kakao_rest_api_key)
-
-    @property
-    def has_google_drive(self) -> bool:
-        """Google Drive API 사용 가능 여부"""
-        return self.google_service_account_path is not None and self.google_service_account_path.exists()
 
     def ensure_dirs(self) -> None:
         """필요한 디렉토리 생성"""

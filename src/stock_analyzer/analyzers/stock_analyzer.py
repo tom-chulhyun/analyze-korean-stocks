@@ -1,6 +1,6 @@
 """종합 주식 분석기"""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from rich.console import Console
 
@@ -12,6 +12,9 @@ from stock_analyzer.indicators.technical import TechnicalIndicatorCalculator
 from stock_analyzer.models import Disclosure, StockReport
 
 console = Console()
+
+# 기술적 지표 계산에 필요한 최소 데이터 일수 (MACD 26 + signal 9 + 여유분)
+MIN_DAYS_FOR_INDICATORS = 60
 
 
 class StockAnalyzer:
@@ -36,18 +39,25 @@ class StockAnalyzer:
         stock_info = self.price_collector.get_stock_info(code)
         console.print(f"  ✓ {stock_info.name} ({stock_info.code}) - {stock_info.market}")
 
-        # 2. 주가 데이터 조회
+        # 2. 주가 데이터 조회 (지표 계산을 위해 더 많은 데이터 수집)
         console.print(f"[bold blue]주가 데이터 조회 중...[/bold blue]")
-        price_data = self.price_collector.get_ohlcv(code, start, end)
-        console.print(f"  ✓ {len(price_data)}일 데이터 수집")
+        # 기술적 지표 계산에 필요한 추가 기간 확보
+        extended_start = start - timedelta(days=MIN_DAYS_FOR_INDICATORS)
+        all_price_data = self.price_collector.get_ohlcv(code, extended_start, end)
 
-        if not price_data:
+        if not all_price_data:
             raise ValueError(f"주가 데이터를 찾을 수 없습니다: {code}")
 
-        # 3. 기술적 지표 계산
+        # 요청 기간의 데이터만 필터링 (리포트용)
+        price_data = [p for p in all_price_data if p.date >= start]
+        console.print(f"  ✓ {len(price_data)}일 데이터 수집 (지표용 {len(all_price_data)}일)")
+
+        # 3. 기술적 지표 계산 (전체 데이터로 계산)
         console.print(f"[bold blue]기술적 지표 계산 중...[/bold blue]")
-        indicators = self.indicator_calculator.calculate_all(price_data)
-        signals = self.indicator_calculator.generate_signals(indicators)
+        all_indicators = self.indicator_calculator.calculate_all(all_price_data)
+        # 요청 기간의 지표만 필터링
+        indicators = [ind for ind in all_indicators if ind.date >= start]
+        signals = self.indicator_calculator.generate_signals(all_indicators)
         console.print(f"  ✓ RSI, TRIX, MACD 계산 완료")
         if signals:
             for sig in signals:
@@ -103,10 +113,11 @@ class StockAnalyzer:
             ai_analysis = self.ai_analyzer.analyze(
                 stock_info.name,
                 news,
+                disclosures,
                 report_data,
             )
             if ai_analysis:
-                console.print(f"  ✓ 뉴스 요약 및 감성 분석 완료")
+                console.print(f"  ✓ 뉴스 및 공시 분석 완료")
                 console.print(f"  → 감성: {ai_analysis.sentiment} ({ai_analysis.sentiment_score:+.2f})")
             else:
                 console.print(f"  [yellow]⚠ AI 분석 실패[/yellow]")
