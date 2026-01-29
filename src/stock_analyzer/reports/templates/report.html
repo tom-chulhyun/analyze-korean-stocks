@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ report.stock_info.name }} ({{ report.stock_info.code }}) 분석 리포트</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Nanum Gothic', 'Malgun Gothic', sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            border-bottom: 3px solid #2962FF;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #2962FF;
+            font-size: 24pt;
+            margin: 0 0 5px 0;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 12pt;
+        }
+
+        .header .meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 10pt;
+            color: #888;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+
+        .section h2 {
+            color: #2962FF;
+            font-size: 14pt;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .summary-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .summary-card .label {
+            font-size: 10pt;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .summary-card .value.positive {
+            color: #26A69A;
+        }
+
+        .summary-card .value.negative {
+            color: #EF5350;
+        }
+
+        .chart-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .signal-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 9pt;
+            font-weight: bold;
+        }
+
+        .signal-buy {
+            background: #E8F5E9;
+            color: #26A69A;
+        }
+
+        .signal-sell {
+            background: #FFEBEE;
+            color: #EF5350;
+        }
+
+        .signal-hold {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+
+        .sentiment-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+
+        .sentiment-positive {
+            background: #E8F5E9;
+            color: #26A69A;
+        }
+
+        .sentiment-negative {
+            background: #FFEBEE;
+            color: #EF5350;
+        }
+
+        .sentiment-neutral {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+
+        .news-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .news-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        .news-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .news-meta {
+            font-size: 9pt;
+            color: #888;
+        }
+
+        .ai-section {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f4fd 100%);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .ai-opinion {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #2962FF;
+            margin-top: 15px;
+        }
+
+        .key-issues {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .issue-tag {
+            background: #E3F2FD;
+            color: #1976D2;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 9pt;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            font-size: 9pt;
+            color: #888;
+            text-align: center;
+        }
+
+        .disclaimer {
+            background: #FFF3E0;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 9pt;
+            color: #E65100;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ report.stock_info.name }}</h1>
+        <div class="subtitle">{{ report.stock_info.code }} | {{ report.stock_info.market }}</div>
+        <div class="meta">
+            <span>분석 기간: {{ format_date(report.period_start) }} ~ {{ format_date(report.period_end) }}</span>
+            <span>생성일시: {{ report.generated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+    </div>
+
+    <!-- 요약 정보 -->
+    <div class="section">
+        <h2>요약 정보</h2>
+        {% if report.latest_price %}
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="label">현재가</div>
+                <div class="value">{{ format_number(report.latest_price.close) }}원</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">등락률</div>
+                <div class="value {% if report.latest_price.change_rate >= 0 %}positive{% else %}negative{% endif %}">
+                    {{ format_percent(report.latest_price.change_rate) }}
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="label">거래대금</div>
+                <div class="value">{{ format_number(report.latest_price.trading_value) }}</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 가격 차트 -->
+    {% if price_chart %}
+    <div class="section">
+        <h2>주가 추이</h2>
+        <div class="chart-container">
+            <img src="{{ price_chart }}" alt="주가 차트">
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 기술적 지표 -->
+    {% if indicator_chart %}
+    <div class="section">
+        <h2>기술적 지표</h2>
+        <div class="chart-container">
+            <img src="{{ indicator_chart }}" alt="기술적 지표 차트">
+        </div>
+
+        {% if report.latest_indicators %}
+        <table>
+            <tr>
+                <th>지표</th>
+                <th>현재값</th>
+                <th>해석</th>
+            </tr>
+            <tr>
+                <td>RSI (14)</td>
+                <td>{{ "%.1f"|format(report.latest_indicators.rsi) if report.latest_indicators.rsi else "-" }}</td>
+                <td>
+                    {% if report.latest_indicators.rsi %}
+                        {% if report.latest_indicators.rsi > 70 %}과매수 구간
+                        {% elif report.latest_indicators.rsi < 30 %}과매도 구간
+                        {% else %}중립 구간{% endif %}
+                    {% else %}-{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td>TRIX (15, 9)</td>
+                <td>{{ "%.4f"|format(report.latest_indicators.trix) if report.latest_indicators.trix else "-" }}</td>
+                <td>
+                    {% if report.latest_indicators.trix and report.latest_indicators.trix_signal %}
+                        {% if report.latest_indicators.trix > report.latest_indicators.trix_signal %}상승 추세
+                        {% else %}하락 추세{% endif %}
+                    {% else %}-{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td>MACD (12, 26, 9)</td>
+                <td>{{ "%.0f"|format(report.latest_indicators.macd) if report.latest_indicators.macd else "-" }}</td>
+                <td>
+                    {% if report.latest_indicators.macd and report.latest_indicators.macd_signal %}
+                        {% if report.latest_indicators.macd > report.latest_indicators.macd_signal %}매수 우위
+                        {% else %}매도 우위{% endif %}
+                    {% else %}-{% endif %}
+                </td>
+            </tr>
+        </table>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 매매 시그널 -->
+    {% if report.signals %}
+    <div class="section">
+        <h2>매매 시그널</h2>
+        <table>
+            <tr>
+                <th>지표</th>
+                <th>시그널</th>
+                <th>사유</th>
+                <th>강도</th>
+            </tr>
+            {% for signal in report.signals %}
+            <tr>
+                <td>{{ signal.indicator }}</td>
+                <td>
+                    <span class="signal-badge signal-{{ signal.signal.value|lower }}">
+                        {{ signal.signal.value }}
+                    </span>
+                </td>
+                <td>{{ signal.reason }}</td>
+                <td>{{ "★" * signal.strength }}{{ "☆" * (5 - signal.strength) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- 재무 정보 -->
+    {% if report.financials %}
+    <div class="section">
+        <h2>재무 정보</h2>
+        <table>
+            <tr>
+                <th>연도</th>
+                <th>매출액</th>
+                <th>영업이익</th>
+                <th>당기순이익</th>
+            </tr>
+            {% for fin in report.financials %}
+            <tr>
+                <td>{{ fin.year }}년 {{ fin.quarter if fin.quarter else "" }}</td>
+                <td>{{ format_number(fin.revenue) if fin.revenue else "-" }}</td>
+                <td>{{ format_number(fin.operating_income) if fin.operating_income else "-" }}</td>
+                <td>{{ format_number(fin.net_income) if fin.net_income else "-" }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- AI 분석 -->
+    {% if report.ai_analysis %}
+    <div class="section">
+        <h2>AI 분석</h2>
+        <div class="ai-section">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold;">뉴스 감성 분석</span>
+                <span class="sentiment-badge sentiment-{{ report.ai_analysis.sentiment|lower }}">
+                    {{ report.ai_analysis.sentiment }}
+                    ({{ "%+.2f"|format(report.ai_analysis.sentiment_score) }})
+                </span>
+            </div>
+
+            {% if report.ai_analysis.key_issues %}
+            <div class="key-issues">
+                {% for issue in report.ai_analysis.key_issues %}
+                <span class="issue-tag">{{ issue }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="ai-opinion">
+                <div style="font-weight: bold; margin-bottom: 10px;">뉴스 요약</div>
+                <p>{{ report.ai_analysis.news_summary }}</p>
+            </div>
+
+            <div class="ai-opinion">
+                <div style="font-weight: bold; margin-bottom: 10px;">종합 의견</div>
+                <p>{{ report.ai_analysis.overall_opinion }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 참고 자료 (Reference) -->
+    {% if report.news or report.disclosures %}
+    <div class="section">
+        <h2>참고 자료</h2>
+
+        {% if report.news %}
+        <div style="margin-bottom: 15px;">
+            <h3 style="font-size: 11pt; color: #555; margin-bottom: 10px;">뉴스 출처</h3>
+            <ul style="list-style: none; padding: 0; font-size: 9pt;">
+                {% for article in report.news[:10] %}
+                <li style="padding: 5px 0; border-bottom: 1px solid #eee;">
+                    <a href="{{ article.link }}" style="color: #2962FF; text-decoration: none;">{{ article.title }}</a>
+                    <br>
+                    <span style="color: #888;">{{ article.source }} | {{ article.published_at.strftime('%Y-%m-%d') }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if report.disclosures %}
+        <div>
+            <h3 style="font-size: 11pt; color: #555; margin-bottom: 10px;">DART 공시</h3>
+            <ul style="list-style: none; padding: 0; font-size: 9pt;">
+                {% for disclosure in report.disclosures %}
+                <li style="padding: 5px 0; border-bottom: 1px solid #eee;">
+                    <a href="{{ disclosure.link }}" style="color: #2962FF; text-decoration: none;">{{ disclosure.title }}</a>
+                    <br>
+                    <span style="color: #888;">{{ disclosure.filer }} | {{ disclosure.date[:4] }}-{{ disclosure.date[4:6] }}-{{ disclosure.date[6:] }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 면책조항 -->
+    <div class="disclaimer">
+        <strong>면책조항:</strong> 이 리포트는 정보 제공 목적으로만 작성되었으며, 투자 권유나 조언이 아닙니다.
+        모든 투자 결정은 본인의 판단과 책임 하에 이루어져야 합니다.
+        과거의 주가 추이가 미래의 성과를 보장하지 않습니다.
+    </div>
+
+    <div class="footer">
+        Generated by Stock Analyzer | {{ report.generated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+    </div>
+</body>
+</html>
