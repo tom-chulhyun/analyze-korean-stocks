@@ -74,7 +74,7 @@ jobs:
           echo "=========================================="
 
           # 자동 종목 선정 + 리포트 생성 (2개 이상 시 자동 병합)
-          uv run stock-report --top "$TOP_N" --market "$MARKET" --period "$PERIOD" --no-ai || echo "⚠️ 일부 리포트 생성 실패"
+          uv run stock-report --top "$TOP_N" --market "$MARKET" --period "$PERIOD" || echo "⚠️ 일부 리포트 생성 실패"
 
       - name: Upload reports to GitHub
         run: |
