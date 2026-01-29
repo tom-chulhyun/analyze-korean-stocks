@@ -1,6 +1,7 @@
 """PDF 리포트 생성기"""
 
 import base64
+import platform
 from datetime import date
 from io import BytesIO
 from pathlib import Path
@@ -15,9 +16,33 @@ from stock_analyzer.models import PriceData, StockReport, TechnicalIndicators
 # 백엔드 설정 (GUI 없이 사용)
 matplotlib.use("Agg")
 
-# 한글 폰트 설정 (macOS: AppleGothic)
-plt.rcParams["font.family"] = "AppleGothic"
-plt.rcParams["axes.unicode_minus"] = False
+# 한글 폰트 설정 (플랫폼별 자동 감지)
+def _setup_korean_font() -> None:
+    """플랫폼에 맞는 한글 폰트 설정"""
+    system = platform.system()
+
+    if system == "Darwin":  # macOS
+        font_candidates = ["AppleGothic", "Apple SD Gothic Neo"]
+    elif system == "Windows":
+        font_candidates = ["Malgun Gothic", "맑은 고딕"]
+    else:  # Linux (Ubuntu)
+        font_candidates = ["NanumGothic", "Noto Sans CJK KR", "DejaVu Sans"]
+
+    # 사용 가능한 폰트 찾기
+    from matplotlib import font_manager
+    available_fonts = {f.name for f in font_manager.fontManager.ttflist}
+
+    for font in font_candidates:
+        if font in available_fonts:
+            plt.rcParams["font.family"] = font
+            break
+    else:
+        # 폰트를 찾지 못한 경우 기본 sans-serif 사용
+        plt.rcParams["font.family"] = "sans-serif"
+
+    plt.rcParams["axes.unicode_minus"] = False
+
+_setup_korean_font()
 
 
 class ReportGenerator:

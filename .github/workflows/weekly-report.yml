@@ -35,7 +35,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies (WeasyPrint)
+      - name: Install system dependencies (WeasyPrint + Korean fonts)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -43,7 +43,12 @@ jobs:
             libpangocairo-1.0-0 \
             libgdk-pixbuf2.0-0 \
             libffi-dev \
-            shared-mime-info
+            shared-mime-info \
+            fonts-nanum \
+            fonts-nanum-coding \
+            fonts-noto-cjk
+          # matplotlib 폰트 캐시 갱신
+          fc-cache -fv
 
       - name: Set up Python
         uses: actions/setup-python@v5
