@@ -3,9 +3,12 @@
 import json
 
 from openai import OpenAI
+from rich.console import Console
 
 from stock_analyzer.config import get_settings
 from stock_analyzer.models import AIAnalysis, Disclosure, NewsArticle
+
+console = Console(stderr=True)
 
 
 class AIAnalyzer:
@@ -18,6 +21,8 @@ class AIAnalyzer:
 
         if settings.openai_api_key:
             self._client = OpenAI(api_key=settings.openai_api_key)
+        else:
+            console.print("  [yellow]⚠ OPENAI_API_KEY 미설정 - AI 분석 비활성화[/yellow]")
 
     @property
     def is_available(self) -> bool:
@@ -66,7 +71,7 @@ class AIAnalyzer:
             )
 
         except Exception as e:
-            # AI 분석 실패 시 None 반환
+            console.print(f"  [red]✗ AI 분석 실패: {e}[/red]")
             return None
 
     def summarize_news(
@@ -105,7 +110,8 @@ class AIAnalyzer:
                 temperature=0.3,
             )
             return response.choices[0].message.content or "요약 생성 실패"
-        except Exception:
+        except Exception as e:
+            console.print(f"  [red]✗ 뉴스 요약 실패: {e}[/red]")
             return "뉴스 요약 생성 실패"
 
     def analyze_news(
@@ -148,7 +154,8 @@ class AIAnalyzer:
                 temperature=0.3,
             )
             return response.choices[0].message.content or ""
-        except Exception:
+        except Exception as e:
+            console.print(f"  [red]✗ 뉴스 분석 실패: {e}[/red]")
             return ""
 
     def analyze_disclosures(
@@ -192,7 +199,8 @@ class AIAnalyzer:
                 temperature=0.3,
             )
             return response.choices[0].message.content or ""
-        except Exception:
+        except Exception as e:
+            console.print(f"  [red]✗ 공시 분석 실패: {e}[/red]")
             return ""
 
     def analyze_sentiment(
@@ -262,7 +270,8 @@ JSON:"""
 
             return sentiment, score, key_issues
 
-        except Exception:
+        except Exception as e:
+            console.print(f"  [red]✗ 감성 분석 실패: {e}[/red]")
             return "NEUTRAL", 0.0, []
 
     def generate_opinion(
@@ -308,5 +317,6 @@ JSON:"""
                 temperature=0.4,
             )
             return response.choices[0].message.content or "종합 의견 생성 실패"
-        except Exception:
+        except Exception as e:
+            console.print(f"  [red]✗ 종합 의견 생성 실패: {e}[/red]")
             return "종합 의견 생성 실패"
