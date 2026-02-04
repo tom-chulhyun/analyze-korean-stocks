@@ -239,6 +239,13 @@ API 키가 없거나 API 호출 실패 시 해당 기능만 비활성화:
 
 ## 최근 변경 이력
 
+### 2026-02-04
+- **AI 분석 실패 원인 진단 및 수정**
+  - PDF 리포트에서 "뉴스 요약 생성 실패", "종합 의견 생성 실패" 문제 분석
+  - `ai_analyzer.py`에 상세 에러 로깅 추가 (커밋: `de37c6c`)
+  - **근본 원인 확인**: GitHub Secrets의 `OPENAI_API_KEY`가 유효하지 않음 (401 Unauthorized)
+  - **해결 필요**: OpenAI에서 새 API 키 발급 후 GitHub Secrets 업데이트 필요
+
 ### 2026-01-29
 - 프로젝트 초기 구현 완료
 - pykrx 종목 조회 문제 수정 (OHLCV fallback)
@@ -246,3 +253,25 @@ API 키가 없거나 API 호출 실패 시 해당 기능만 비활성화:
 - matplotlib 한글 폰트 설정
 - WeasyPrint 시스템 의존성 설치
 - PDF 리포트 생성 테스트 성공
+
+---
+
+## 다음 세션 TODO
+
+### 우선순위: 높음
+- [ ] **OpenAI API 키 교체**
+  1. [OpenAI API Keys](https://platform.openai.com/account/api-keys)에서 새 키 생성
+  2. GitHub → Settings → Secrets → `OPENAI_API_KEY` 업데이트
+  3. 워크플로우 재실행하여 AI 분석 정상 동작 확인
+
+### GitHub Secrets 상태
+| Secret | 상태 |
+|--------|------|
+| `DART_API_KEY` | 정상 |
+| `NAVER_CLIENT_ID` | 정상 |
+| `NAVER_CLIENT_SECRET` | 정상 |
+| `OPENAI_API_KEY` | **교체 필요** (401 에러) |
+
+### 참고 파일
+- `src/stock_analyzer/analyzers/ai_analyzer.py` - AI 분석 로직 (에러 로깅 추가됨)
+- `.github/workflows/weekly-report.yml` - GitHub Actions 워크플로우
